@@ -1,0 +1,116 @@
+-- IPB0940U 복원 : TBSIPMVPM
+call admin_cmd('load from ( select * from MBSASMDTBAK.TBSIPMVPM ) of cursor REPLACE into MBSASSTD.TBSIPMVPM nonrecoverable');
+
+-- IPB0530U 복원 : TBSIPMCVP, 자동이관 배치가 돌면 BIV랑 DPM, UTRF도 복원해야 함. 
+call admin_cmd('load from ( select * from MBSASMDTBAK.TBSIPMCVP ) of cursor REPLACE into MBSASSTD.TBSIPMCVP nonrecoverable');
+ 
+-- ITB0240U, ITB0340U, ITB0230U  복원 : TBSITUTRS, TBSIAUBIV, TBSTAUDPM, TBSIASQCH, TBSITUTRF
+call admin_cmd('load from ( select * from MBSASMDTBAK.TBSIPMSPR ) of cursor REPLACE into MBSASSTD.TBSIPMSPR nonrecoverable');
+UPDATE MBSASSTD.TBSIPMSPR SET BRN_CD = 'DH0' WHERE BRN_CD = 'D00';
+
+call admin_cmd('load from ( select * from MBSASMDTBAK.TBSIAUBIV ) of cursor REPLACE into MBSASSTD.TBSIAUBIV nonrecoverable');
+call admin_cmd('load from ( select * from MBSASMDTBAK.TBSTAUDPM ) of cursor REPLACE into MBSASSTD.TBSTAUDPM nonrecoverable');
+call admin_cmd('load from ( select * from MBSASMDTBAK.TBSITUTRF ) of cursor REPLACE into MBSASSTD.TBSITUTRF nonrecoverable');
+-- call admin_cmd('load from ( select * from MBSASMDTBAK.TBSLAULOC ) of cursor REPLACE into MBSASSTD.TBSLAULOC nonrecoverable');
+-- 채번 테이블 업데이트 잊지 말 것
+call admin_cmd('load from ( select * from MBSASMDTBAK.TBSITUTRS ) of cursor REPLACE into MBSASSTD.TBSITUTRS nonrecoverable');
+
+SELECT * FROM MBSASSTD.TBSIAUBIV WHERE LST_UPD_DTM > '2024-01-23';
+SELECT * FROM MBSASSTD.TBSTAUDPM WHERE LST_UPD_DTM > '2024-01-23';
+SELECT * FROM MBSASSTD.TBSITUTRF WHERE LST_UPD_DTM > '2024-01-23';
+
+-- 임의 수량 업데이트 (최대치로)
+UPDATE mbsasstd.TBSLAULOC SET AVS_QTY = '50000' WHERE mctr_cd LIKE 'M%';
+
+SELECT TABNAME , ALTER_TIME FROM syscat.tables WHERE TABNAME LIKE '%UTRS' AND TABSCHEMA ='MBSASSTD';
+
+-- 240123 백업 BIV
+CREATE TABLE MBSASMDTBAKIPT.TBSIAUBIV_20240123 AS (SELECT * FROM MBSASSTD.TBSIAUBIV) WITH DATA;
+
+-- LOC 수량 업데이트 
+UPDATE mbsasstd.TBSLAULOC SET AVS_QTY = '50000' WHERE mctr_cd LIKE 'M%';
+
+-- 채번 테이블 인서트
+INSERT INTO MBSASSTD.TBSLAUNBR (
+  KEY_FIELD_NM
+, KEY_VAL
+, KEY_SQN
+, FST_USR_ID
+, FST_SYS_DCD
+, FST_CRT_DTM
+, LST_UPD_ID
+, LST_SYS_DCD
+, LST_UPD_DTM
+)
+SELECT
+  'UTRF_SND_NO' AS KEY_FIELD_NM
+, SND_YEAR || SND_MN || SND_BRN_CD || SND_WHS_CD AS KEY_VAL
+, MAX(SND_SQN) AS KEY_SQN
+, 'SYSTEM'
+, 'S'
+, CURRENT_TIMESTAMP
+, 'SYSTEM'
+, 'S'
+, CURRENT_TIMESTAMP
+FROM MBSASSTD.TBSITUTRF
+WHERE snd_brn_cd  like 'M%'
+GROUP BY  SND_YEAR,SND_MN,SND_BRN_CD,SND_WHS_CD
+;
+
+/* UTRF 채번 일련번호 초기값 생성 */
+MERGE INTO MBSASSTD.TBSLAUNBR UNBR
+USING (
+    SELECT MAX(UTRF.SND_NO) AS SND_NO
+    FROM MBSASSTD.TBSITUTRF UTRF
+    LEFT OUTER JOIN MBSASSTD.TBSLAUNBR UNBR ON (
+    UNBR.KEY_VAL = SUBSTR(UTRF.SND_NO, 1, 12)
+    AND UNBR.KEY_FIELD_NM = 'UTRF_SND_NO'
+    )
+    WHERE 1=1
+    AND UTRF.SND_YEAR = '2023'
+    AND UTRF.SND_MN = '11'
+    GROUP BY
+        SUBSTR(UTRF.SND_NO, 1, 12)
+)
+ON (
+   UNBR.KEY_FIELD_NM = 'UTRF_SND_NO' AND UNBR.KEY_VAL = SUBSTR(SND_NO, 1, 12)
+   )
+WHEN MATCHED THEN
+    UPDATE SET
+    KEY_SQN = LPAD(SUBSTR(SND_NO, 13, 7) + 1, 7, '0')
+    , LST_UPD_ID = 'DT088476'
+    , LST_SYS_DCD = 'S'
+    , LST_UPD_DTM = CURRENT_TIMESTAMP
+WHEN NOT MATCHED THEN
+    INSERT (
+        KEY_FIELD_NM
+      , KEY_VAL
+      , KEY_SQN
+      , FST_USR_ID
+      , FST_SYS_DCD
+      , FST_CRT_DTM
+      , LST_UPD_ID
+      , LST_SYS_DCD
+      , LST_UPD_DTM
+      ) VALUES ( 'UTRF_SND_NO'
+               , SUBSTR(SND_NO, 1, 12)
+               , LPAD(SUBSTR(SND_NO, 13, 7) + 1, 7, '0')
+               , 'DT088476'
+               , 'S'
+               , CURRENT_TIMESTAMP
+               , 'DT088476'
+               , 'S'
+               , CURRENT_TIMESTAMP
+               )
+;
+
+
+-- 340 결과 확인
+SELECT COUNT(*)
+FROM MBSASSTD.TBSITUTRF
+WHERE 1 = 1
+--AND SND_NO = '202311MBMM010009954'
+AND SND_YEAR = '2023'
+   AND SND_MN = '11'
+   AND LST_UPD_DTM LIKE '2024-01-25%'
+   AND LST_UPD_ID = 'ITB0340U';
