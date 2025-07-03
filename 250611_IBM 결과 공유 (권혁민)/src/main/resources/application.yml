@@ -1,0 +1,27 @@
+spring:
+  h2:
+    console:
+      enabled: true
+      path: /h2
+      settings:
+        trace: false
+        web-allow-others: true
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  batch:
+    jdbc:
+      initialize-schema: NEVER
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema_custom.sql
+      data-locations: classpath:data_custom.sql
+      
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  type-aliases-package: com.mobis.as.mpsa.ph.domain
+  mapper-locations: classpath:mapper/**/*.xml

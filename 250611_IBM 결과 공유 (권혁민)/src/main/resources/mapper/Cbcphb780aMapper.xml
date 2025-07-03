@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mobis.mapper.Cbcphb780aMapper">
+
+    <!-- Fetches data from PFCPHOCF table based on given conditions -->
+    <select id="selectPfcpHocf" parameterType="Cbcphb780aDTO" resultType="Cbcphb780aDTO.PfcpHocfRow">
+        SELECT *
+        FROM MCAPTFLE.PFCPHOCF
+        WHERE OCF_JOB_DT = #{workArea1.wtDate}
+          AND OCF_JOB_MBR = #{workArea1.wtMbr}
+          AND OCF_JOB_FLE = #{workArea1.wtFle}
+          AND OCF_JOB_LIB = #{workArea1.wtLib}
+          AND OCF_CFM_CMP = #{workArea1.wCmpKnd}
+          AND OCF_SND_YN <> 'Y'
+        ORDER BY OCF_ORD_NO, OCF_ORD_LN, OCF_ORD_SF
+        WITH UR
+    </select>
+
+    <!-- Fetches data from PFCICPOI table based on reference order details -->
+    <select id="selectPfcicpoiByRefOrd" parameterType="Cbcphb780aDTO" resultType="Cbcphb780aDTO.PfcicpoiRow">
+        SELECT *
+        FROM MCAPTFLE.PFCICPOI
+        WHERE POI_REF_ORD_NO = #{samfileRedf.samOrdNo}
+          AND POI_REF_ORD_LN = #{samfileRedf.samOrdLn}
+          AND POI_REF_ORD_SF = #{samfileRedf.samOrdSf}
+        FETCH FIRST 1 ROWS ONLY
+    </select>
+
+    <!-- Fetches data from PFCICPOI table based on POI_NO -->
+    <select id="selectPfcicpoiByPoiNo" parameterType="Cbcphb780aDTO" resultType="Cbcphb780aDTO.PfcicpoiRow">
+        SELECT *
+        FROM MCAPTFLE.PFCICPOI
+        WHERE POI_POI_NO = #{p3Parm.p3OPoiNo}
+        WITH UR
+    </select>
+
+    <!-- Fetches data from PFCICINV table based on given conditions -->
+    <select id="selectPfcicinv" parameterType="Cbcphb780aDTO" resultType="Cbcphb780aDTO.PfcicinvRow">
+        SELECT *
+        FROM MCAPTFLE.PFCICINV
+        WHERE INV_PDC = #{p3Parm.p3Pdc}
+          AND INV_CMP_KND = #{p3Parm.p3CmpKnd}
+          AND INV_PNO = #{p3Parm.p3Pno}
+    </select>
+
+    <!-- Updates PFCICPOI table based on given conditions -->
+    <update id="updatePfcicpoi" parameterType="Cbcphb780aDTO">
+        UPDATE MCAPTFLE.PFCICPOI
+        SET POI_CXL_FLG = #{poiCxlFlg},
+            POI_CXL_TYP = 'CC',
+            POI_PO_CFM_CD = 'C',
+            POI_OFF_AMD_CD = #{samfileRedf.samAmdCd},
+            POI_IMP_ATP_DT = #{samfileRedf.samEtd},
+            POI_PO_VCFM_DT = #{workArea1.wSysDate},
+            POI_UPD_DT = #{workArea1.wSysDate},
+            POI_UPD_USR = #{workArea1.wLogusr},
+            POI_UPD_TIM = #{workArea1.wSysHms}
+        WHERE POI_POI_NO = #{workArea1.wrPoiNo}
+          AND POI_PO_DTL_PRC NOT IN ('D', 'F')
+    </update>
+
+    <!-- Updates PFCPHOCF table based on given conditions -->
+    <update id="updatePfcpHocf" parameterType="Cbcphb780aDTO">
+        UPDATE MCAPTFLE.PFCPHOCF
+        SET OCF_SND_YN = 'Y'
+        WHERE OCF_ORD_NO = #{samfileRedf.samOrdNo}
+          AND OCF_PRFM_NO = #{samfileRedf.samPrfmNo}
+          AND OCF_CFM_DT = #{samfileRedf.samCfmDt}
+          AND OCF_SER_NO = #{ocfSerNo}
+    </update>
+
+    <!-- Inserts a new record into PFCPHARM table -->
+    <insert id="insertPfcpHarm" parameterType="Cbcphb780aDTO.PfcpHarmRow">
+        INSERT INTO MCAPTFLE.PFCPHARM (
+            ARM_IPDC,
+            ARM_ATP_NO,
+            ARM_ATP_LN,
+            ARM_DUE_DT,
+            ARM_DUE_QT,
+            ARM_ATP_DT,
+            ARM_ATP_QT,
+            ARM_OBEY_QT,
+            ARM_POI_NO,
+            ARM_INS_DT,
+            ARM_INS_TIM,
+            ARM_INS_USR,
+            ARM_UPD_DT,
+            ARM_UPD_TIM,
+            ARM_UPD_USR
+        ) VALUES (
+            #{armIpdc},
+            #{armAtpNo},
+            #{armAtpLn},
+            #{armDueDt},
+            #{armDueQt},
+            #{armAtpDt},
+            #{armAtpQt},
+            #{armObeyQt},
+            #{armPoiNo},
+            #{armInsDt},
+            #{armInsTim},
+            #{armInsUsr},
+            #{armUpdDt},
+            #{armUpdTim},
+            #{armUpdUsr}
+        )
+    </insert>
+
+    <!-- Deletes records from PFCPHARM table based on given conditions -->
+    <delete id="deletePfcpHarm" parameterType="Cbcphb780aDTO">
+        DELETE FROM MCAPTFLE.PFCPHARM
+        WHERE ARM_POI_NO = #{workArea1.wrPoiNo}
+    </delete>
+
+</mapper>

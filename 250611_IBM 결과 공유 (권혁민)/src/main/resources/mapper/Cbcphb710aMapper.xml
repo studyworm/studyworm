@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mobis.mapper.Cbcphb710aMapper">
+
+    <!-- 
+        Check if a record exists in PFCPHOCF table based on the given key fields.
+    -->
+    <select id="checkExistingRecord" parameterType="Cbcphb710aDTO" resultType="Cbcphb710aDTO">
+        SELECT *
+        FROM MCAPTFLE.PFCPHOCF
+        WHERE OCF_ORD_NO = #{samfileRedf.samOrdNo}
+          AND OCF_PRFM_NO = #{samfileRedf.samPrfmNo}
+          AND OCF_CFM_DT = #{samfileRedf.samCfmDt}
+          AND OCF_SER_NO = #{wKeySeq}
+    </select>
+
+    <!-- 
+        Insert a new record into PFCPHOCF table.
+    -->
+    <insert id="insertConfirmationData" parameterType="Cbcphb710aDTO">
+        INSERT INTO MCAPTFLE.PFCPHOCF (
+            OCF_ORD_NO, OCF_PRFM_NO, OCF_CFM_DT, OCF_SER_NO,
+            OCF_TOT_AMT, OCF_TQT, OCF_TOT_ITM, OCF_TOT_VOL, OCF_TOT_WG,
+            OCF_ORD_LN, OCF_ORD_SF, OCF_CFM_CMP, OCF_CFM_PNO, OCF_CFM_PNM,
+            OCF_NOR_QT, OCF_ABN_QT, OCF_UPRI, OCF_AMD_CD, OCF_ORD_PNO,
+            OCF_ETD, OCF_ITMD_TRD, OCF_JOB_DT, OCF_JOB_PDC, OCF_JOB_MBR,
+            OCF_JOB_FLE, OCF_JOB_LIB, OCF_ORD_OSF, OCF_INS_DT, OCF_INS_TIM,
+            OCF_INS_USR, OCF_UPD_DT, OCF_UPD_TIM, OCF_UPD_USR
+        ) VALUES (
+            #{samfileRedf.samOrdNo}, #{samfileRedf.samPrfmNo}, #{samfileRedf.samCfmDt}, #{wKeySeq},
+            #{samfileRedf.samTotAmt}, #{samfileRedf.samTqt}, #{samfileRedf.samTotItm}, #{samfileRedf.samTotVol}, #{samfileRedf.samTotWg},
+            #{samfileRedf.samOrdLn}, #{samfileRedf.samOrdSf}, #{wCmpKnd}, #{samfileRedf.samCfmPno}, #{samfileRedf.samCfmPnm},
+            #{samfileRedf.samNorQt}, #{samfileRedf.samAbnQt}, #{samfileRedf.samUpri}, #{samfileRedf.samAmdCd}, #{samfileRedf.samOrdPno},
+            #{samfileRedf.samEtd}, #{samfileRedf.samItmdTrd}, #{p2Dt}, #{wtPdc}, #{wtMbr},
+            #{wtFle}, #{wtLib}, #{ocfOrdOsf}, #{sysDate}, #{sysTime},
+            #{logUsr}, #{sysDate}, #{sysTime}, #{logUsr}
+        )
+    </insert>
+
+    <!-- 
+        Retrieve records for processing from PFCCMFTE based on W-CMP-KND.
+    -->
+    <select id="findRecordsForProcessing" parameterType="Cbcphb710aDTO" resultType="Cbcphb710aDTO">
+        SELECT *
+        FROM PFCCMFTE
+        WHERE SAM_ORD_NO LIKE CONCAT(#{wCmpKnd}, '%')
+    </select>
+
+</mapper>

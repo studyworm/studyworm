@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+    Mapper for Cbcuzw011r with namespace com.mobis.mapper.Cbcuzw011rMapper
+-->
+<mapper namespace="com.mobis.mapper.Cbcuzw011rMapper">
+
+    <!-- 
+        Select the next LOGSE2 value from MCHPTFLE.PFCUZLOG
+    -->
+    <select id="selectNextLogSe2" parameterType="Cbcuzw011rDTO.PfcuzlogRow" resultType="Cbcuzw011rDTO.PfcuzlogRow">
+        SELECT IFNULL(MAX(LOGSE2) + 1, 1) AS logSe2
+        FROM MCHPTFLE.PFCUZLOG
+        WHERE LOGDAT = #{logDat}
+          AND LOGPDC = #{logPdc}
+          AND LOGPGM = #{logPgm}
+          AND LOGUSR = #{logUsr}
+          AND LOGSEQ = #{logSeq}
+        WITH UR
+    </select>
+
+    <!-- 
+        Call the function FNCCMM200Q(:LOGMCD, 'ENG') from MCAPTFLE.DUMMY
+    -->
+    <select id="callFnccmm200q" parameterType="Cbcuzw011rDTO.PfcuzlogRow" resultType="Cbcuzw011rDTO.PfcuzlogRow">
+        SELECT FNCCMM200Q(#{logMcd}, 'ENG') AS logMtx
+        FROM MCAPTFLE.DUMMY
+    </select>
+
+    <!-- 
+        Insert new log data into MCHPTFLE.PFCUZLOG
+    -->
+    <insert id="insertLogData" parameterType="Cbcuzw011rDTO.PfcuzlogRow">
+        INSERT INTO MCHPTFLE.PFCUZLOG (
+            LOGDAT, LOGPDC, LOGPGM, LOGUSR, LOGSEQ, LOGSE2, 
+            LOGSTM, LOGRTC, LOGSQL, LOGMSG, LOGMCD, LOGMTX
+        ) VALUES (
+            #{logDat}, #{logPdc}, #{logPgm}, #{logUsr}, #{logSeq}, #{logSe2},
+            #{logStm}, #{logRtc}, #{logSql}, #{logMsg}, #{logMcd}, #{logMtx}
+        )
+        WITH NC
+    </insert>
+
+</mapper>

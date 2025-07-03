@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+    Mapper for CbcuZw010r with namespace com.mobis.mapper.CbcuZw010rMapper
+-->
+<mapper namespace="com.mobis.mapper.CbcuZw010rMapper">
+
+    <!-- 
+        Insert new log data into MCHPTFLE.PFCUZLOG
+    -->
+    <insert id="insertLogData" parameterType="CbcuZw010rDTO.PfcuzlogRow">
+        INSERT INTO MCHPTFLE.PFCUZLOG 
+        VALUES (
+            #{logDat},
+            #{logPdc},
+            #{logPgm},
+            #{logUsr},
+            #{logSeq},
+            #{logStm},
+            #{logEtm},
+            #{logRtc},
+            #{logSql},
+            #{logMsg},
+            #{logIp}
+        ) WITH NC
+    </insert>
+
+    <!-- 
+        Update existing log data in MCHPTFLE.PFCUZLOG
+    -->
+    <update id="updateLogData" parameterType="CbcuZw010rDTO.PfcuzlogRow">
+        UPDATE MCHPTFLE.PFCUZLOG 
+        SET 
+            LOGETM = #{logEtm},
+            LOGRTC = #{logRtc},
+            LOGSQL = #{logSql},
+            LOGMSG = #{logMsg},
+            LOGIP  = #{logIp}
+        WHERE 
+            LOGDAT = #{logDat}
+            AND LOGPDC = #{logPdc}
+            AND LOGPGM = #{logPgm}
+            AND LOGUSR = #{logUsr}
+            AND LOGSEQ = #{logSeq}
+            AND LOGSE2 = 0
+        WITH NC
+    </update>
+
+</mapper>
