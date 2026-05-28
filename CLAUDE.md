@@ -1,66 +1,68 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+이 파일은 이 저장소에서 작업할 때 Claude Code(claude.ai/code)에게 제공하는 가이드입니다.
 
-## Repository Overview
+## 저장소 개요
 
-This is a personal study/work repository for `@studyworm` (이승용, studyworm@sicc.co.kr). It is not a conventional software project — it mixes personal notes, project documentation, analysis artifacts, and standalone utility code related to legacy COBOL-to-Java migration work at Hyundai Mobis (현대모비스).
+`@studyworm`(이승용, studyworm@sicc.co.kr)의 개인 학습/업무 저장소입니다. 일반적인 소프트웨어 프로젝트가 아니며, 현대모비스 레거시 COBOL→Java 전환 작업과 관련된 개인 메모, 프로젝트 문서, 분석 산출물, 단독 실행 유틸리티 코드가 혼재합니다.
 
-The only executable code lives in `05_parser/`. Everything else (MDT/, IBM AI/, 250*/ directories) is documentation and analysis output in Korean.
+실행 가능한 코드는 `05_parser/`에만 있습니다. 그 외 폴더(MDT/, IBM AI/, 250*/)는 한국어로 작성된 문서 및 분석 결과물입니다.
 
-## 05_parser — Static Analysis Tools
+## 05_parser — 정적 분석 도구
 
-Three standalone Java programs for analyzing legacy IBM AS/400 COBOL and Java codebases. They have **no build system in this repo** — they are meant to be run directly from an IDE (e.g., Eclipse or IntelliJ) with `jsqlparser` and `commons-lang3`/`commons-io` on the classpath.
+IBM AS/400 레거시 COBOL 및 Java 코드베이스를 분석하기 위한 단독 실행 Java 프로그램 3개입니다. **이 저장소에는 빌드 시스템이 없으며**, `jsqlparser`와 `commons-lang3`/`commons-io`를 클래스패스에 추가한 후 IDE(Eclipse, IntelliJ 등)에서 직접 실행합니다.
 
-### What each class does
+### 각 클래스의 역할
 
-| Class | Purpose | Input | Output |
+| 클래스 | 목적 | 입력 | 출력 |
 |---|---|---|---|
-| `TestParser.java` | Extracts CRUD matrix from COBOL `.cob` files | Directory of `.cob` files | TSV: `filename TAB tableName TAB C TAB R TAB U TAB D TAB filePath` |
-| `TestCallParser.java` | Extracts inter-program CALL relationships from COBOL | Directory of `.cob` files | TSV: `filename TAB calledProgram TAB filePath` |
-| `TestJavaParser.java` | Extracts `.invoke()` calls from Java files (Java→COBOL bridge) | Directory of `.java` files | TSV: `filename TAB lib.programName TAB filePath` |
+| `TestParser.java` | COBOL `.cob` 파일에서 CRUD 매트릭스 추출 | `.cob` 파일 디렉터리 | TSV: `파일명 TAB 테이블명 TAB C TAB R TAB U TAB D TAB 파일경로` |
+| `TestCallParser.java` | COBOL 프로그램 간 CALL 관계 추출 | `.cob` 파일 디렉터리 | TSV: `파일명 TAB 호출프로그램 TAB 파일경로` |
+| `TestJavaParser.java` | Java 파일에서 `.invoke()` 호출 추출 (Java→COBOL 브리지) | `.java` 파일 디렉터리 | TSV: `파일명 TAB 라이브러리.프로그램명 TAB 파일경로` |
 
-All three hardcode Windows source paths like `C:\DES_old\workspace\asisdbsrc` — update the `basePath` variable in `main()` before running.
+세 클래스 모두 `C:\DES_old\workspace\asisdbsrc`와 같이 Windows 경로가 하드코딩되어 있습니다. 실행 전 `main()` 내 `basePath` 변수를 실제 경로로 수정해야 합니다.
 
-### COBOL SQL parsing logic (TestParser)
+### COBOL SQL 파싱 로직 (TestParser)
 
-SQL is embedded in COBOL between `EXEC SQL` and `END-EXEC` markers. The parser:
-1. Strips comment lines (lines starting with `*` after leading whitespace)
-2. Collapses multiple spaces and normalizes COBOL-specific syntax (`INTO :var`, `DECLARE ... CURSOR`)
-3. Applies a keyword-match strategy (not full SQL parsing) against a hardcoded list of known AS/400 library/table names (e.g., `UPARTFLE`, `KPTDB09`, `APARTFLE`)
-4. Determines CRUD type from the leading keyword of the first occurrence; subsequent table references are assumed reads (`R`)
+SQL은 COBOL 내부에 `EXEC SQL` ~ `END-EXEC` 마커 사이에 삽입되어 있습니다. 파서 동작 순서:
 
-`jsqlparser` (`CCJSqlParserUtil`) is present in `TestParser.java` in the `selectTableList` method but is **not used in the main execution path** — the production flow uses the keyword-match approach in `selectTableList2`/`getTable` instead.
+1. 주석 제거 — 앞 공백 제거 후 `*`로 시작하는 줄 삭제
+2. 공백 정규화 및 COBOL 특수 문법 처리 (`INTO :변수`, `DECLARE ... CURSOR` 등)
+3. AS/400 라이브러리/테이블명 하드코딩 목록(`UPARTFLE`, `KPTDB09`, `APARTFLE` 등)을 대상으로 키워드 매칭(완전한 SQL 파싱이 아님)
+4. 첫 번째 등장 기준으로 구문 선두 키워드(`INSERT`/`SELECT`/`UPDATE`/`DELETE`)에서 CRUD 유형 결정; 이후 동일 테이블 참조는 읽기(`R`)로 처리
 
-### CALL extraction logic (TestCallParser)
+`jsqlparser`(`CCJSqlParserUtil`)는 `TestParser.java`의 `selectTableList` 메서드에 존재하지만 **실제 실행 경로에서는 사용되지 않습니다** — 실제 흐름은 `selectTableList2`/`getTable`의 키워드 매칭 방식을 사용합니다.
 
-Finds `\nCALL ` … `\n` substrings after comment removal. Extracts the called program name from single-quoted strings or the first space-delimited token.
+### CALL 추출 로직 (TestCallParser)
 
-### Java invoke extraction logic (TestJavaParser)
+주석 제거 후 `\nCALL ` ~ `\n` 사이 문자열을 추출합니다. 호출 프로그램명은 작은따옴표 안의 문자열 또는 첫 번째 공백 구분 토큰에서 가져옵니다.
 
-Finds `.invoke(` patterns in Java source; extracts the first two comma-separated arguments (library and program name) to build a `library.programName` key. This corresponds to an AS/400 program call bridge pattern.
+### Java invoke 추출 로직 (TestJavaParser)
 
-### Output files (05_parser/output/)
+Java 소스에서 `.invoke(` 패턴을 찾아 첫 번째와 두 번째 콤마 구분 인자(라이브러리명, 프로그램명)를 추출하여 `라이브러리.프로그램명` 키를 구성합니다. AS/400 프로그램 호출 브리지 패턴에 해당합니다.
 
-Pre-generated result files from a prior run against the MPCA/AMOS codebase:
+### 출력 파일 (05_parser/output/)
 
-- `ALL_COBOL_CALL.sql` — COBOL→COBOL call graph
-- `ALL_COBOL_CL_CALL.sql` / `ALL_COBOL_CL_SBMJOB_CALL.sql` — CL program call graph
-- `ALL_CALL_TRANS.sql` — transition/mapping table
-- `JAVA_CRUD.sql` / `JAVA_ALL_TABLE.sql` — Java-side CRUD results
-- `ALL_ERROR_*` — files that failed to parse
+MPCA/AMOS 코드베이스를 대상으로 사전 실행한 결과 파일들:
 
-`sbmjob_cobol_add.csv` is a supplemental call graph (columns: `cobol, call_cobol, cobol_file, file`) extracted from SBMJOB CL commands.
+- `ALL_COBOL_CALL.sql` — COBOL→COBOL 호출 그래프
+- `ALL_COBOL_CL_CALL.sql` / `ALL_COBOL_CL_SBMJOB_CALL.sql` — CL 프로그램 호출 그래프
+- `ALL_CALL_TRANS.sql` — 전환/매핑 테이블
+- `JAVA_CRUD.sql` / `JAVA_ALL_TABLE.sql` — Java 측 CRUD 결과
+- `ALL_ERROR_*` — 파싱 실패 파일 목록
 
-## Domain Context
+`sbmjob_cobol_add.csv`는 SBMJOB CL 명령에서 추출한 보조 호출 그래프입니다(컬럼: `cobol, call_cobol, cobol_file, file`).
 
-The project background is a COBOL→Java migration (MPCA scheduler, Hyundai Mobis parts system). Key terminology:
-- **MPCA** — legacy IBM AS/400 scheduler subsystem
-- **UPARTFLE / KPTDB** — AS/400 library/table naming conventions
-- **MDT** (Migration Data Transfer) — a sub-project for validating migrated data by replaying transactions
-- **WCA** (Watson Code Assistant) — IBM's AI tool used to assist the COBOL→Java conversion
-- **Nexacro** — the UI framework used in the Java replacement system
+## 도메인 용어
+
+COBOL→Java 전환(MPCA 스케줄러, 현대모비스 부품 시스템) 프로젝트 배경의 주요 용어:
+
+- **MPCA** — 레거시 IBM AS/400 스케줄러 서브시스템
+- **UPARTFLE / KPTDB** — AS/400 라이브러리/테이블 명명 규칙
+- **MDT** (Migration Data Transfer) — 트랜잭션 재수행으로 전환 데이터를 검증하는 서브 프로젝트
+- **WCA** (Watson Code Assistant) — COBOL→Java 전환을 지원하는 IBM AI 도구
+- **Nexacro** — Java 대체 시스템에서 사용하는 UI 프레임워크
 
 ## 220828 draggable/
 
-Standalone HTML/CSS/JS experiment for a native-JS draggable `<div>`, written as a learning exercise. No dependencies, no build step.
+학습 목적으로 작성한 순수 JS 기반 드래그 가능한 `<div>` 실험입니다. 의존성 없음, 빌드 단계 없음.
